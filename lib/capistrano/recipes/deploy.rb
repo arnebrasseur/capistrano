@@ -240,23 +240,23 @@ namespace :deploy do
     using the :public_children variable.
   DESC
   task :finalize_update, :except => { :no_release => true } do
-    run "chmod -R g+w #{latest_release}" if fetch(:group_writable, true)
+    run "#{try_sudo} chmod -R g+w #{latest_release}" if fetch(:group_writable, true)
 
     # mkdir -p is making sure that the directories are there for some SCM's that don't
     # save empty folders
     run <<-CMD
-      rm -rf #{latest_release}/log #{latest_release}/public/system #{latest_release}/tmp/pids &&
-      mkdir -p #{latest_release}/public &&
-      mkdir -p #{latest_release}/tmp
+      #{try_sudo} rm -rf #{latest_release}/log #{latest_release}/public/system #{latest_release}/tmp/pids &&
+      #{try_sudo} mkdir -p #{latest_release}/public &&
+      #{try_sudo} mkdir -p #{latest_release}/tmp
     CMD
     shared_children.map do |d|
-      run "ln -s #{shared_path}/#{d.split('/').last} #{latest_release}/#{d}"
+      run "#{try_sudo} ln -s #{shared_path}/#{d.split('/').last} #{latest_release}/#{d}"
     end
 
     if fetch(:normalize_asset_timestamps, true)
       stamp = Time.now.utc.strftime("%Y%m%d%H%M.%S")
       asset_paths = fetch(:public_children, %w(images stylesheets javascripts)).map { |p| "#{latest_release}/public/#{p}" }.join(" ")
-      run "find #{asset_paths} -exec touch -t #{stamp} {} ';'; true", :env => { "TZ" => "UTC" }
+      run "#{try_sudo} find #{asset_paths} -exec touch -t #{stamp} {} ';'; true", :env => { "TZ" => "UTC" }
     end
   end
 
@@ -280,13 +280,13 @@ namespace :deploy do
   task :create_symlink, :except => { :no_release => true } do
     on_rollback do
       if previous_release
-        run "rm -f #{current_path}; ln -s #{previous_release} #{current_path}; true"
+        run "#{try_sudo} rm -f #{current_path}; #{try_sudo} ln -s #{previous_release} #{current_path}; true"
       else
         logger.important "no previous release to rollback to, rollback of symlink skipped"
       end
     end
 
-    run "rm -f #{current_path} && ln -s #{latest_release} #{current_path}"
+    run "#{try_sudo} rm -f #{current_path} && #{try_sudo} ln -s #{latest_release} #{current_path}"
   end
 
   desc <<-DESC

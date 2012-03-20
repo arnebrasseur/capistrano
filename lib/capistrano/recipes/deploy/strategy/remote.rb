@@ -43,7 +43,7 @@ module Capistrano
           # Returns the command which will write the identifier of the
           # revision being deployed to the REVISION file on each host.
           def mark
-            "(echo #{revision} > #{configuration[:release_path]}/REVISION)"
+            "#{try_sudo} sh -c '(echo #{revision} > #{configuration[:release_path]}/REVISION)'"
           end
       end
 

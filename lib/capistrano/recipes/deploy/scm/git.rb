@@ -130,8 +130,8 @@ module Capistrano
         # Performs a clone on the remote machine, then checkout on the branch
         # you want to deploy.
         def checkout(revision, destination)
-          git    = command
-          remote = origin
+          remote     = origin
+          git        = remote_command
 
           args = []
           args << "-o #{remote}" unless remote == 'origin'
@@ -162,13 +162,14 @@ module Capistrano
         # An expensive export. Performs a checkout as above, then
         # removes the repo.
         def export(revision, destination)
-          checkout(revision, destination) << " && rm -Rf #{destination}/.git"
+          maybe_sudo = (variable(:use_sudo) ? 'sudo ' : '')
+          checkout(revision, destination) << " && #{maybe_sudo}rm -Rf #{destination}/.git"
         end
 
         # Merges the changes to 'head' since the last fetch, for remote_cache
         # deployment strategy
         def sync(revision, destination)
-          git     = command
+          git     = remote_command
           remote  = origin
 
           execute = []
@@ -247,6 +248,12 @@ module Capistrano
         def command
           # For backwards compatibility with 1.x version of this module
           variable(:git) || super
+        end
+
+        # Git commmand on the server, honors :use_sudo
+        def remote_command
+          maybe_sudo = (variable(:use_sudo) ? 'sudo ' : '')
+          maybe_sudo << command
         end
 
         # Determines what the response should be for a particular bit of text
